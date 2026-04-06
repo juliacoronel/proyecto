@@ -1,0 +1,458 @@
+
+
+
+
+
+
+### Import 
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import matplotlib.pyplot as plt
+```
+
+
+```{python}
+import country_converter as coco
+```
+
+```{python}
+pop = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\wWorld_pop_Total.csv")
+
+```
+
+
+```{python}
+pop
+```
+
+```{python}
+pop.head()
+```
+### Rename ::: {.columns}
+
+
+
+## For the future I want to calculate the population Density, so I need to add Area.csv
+
+
+
+
+```{python}
+area = pd.read_csv(r"c:\Users\julia\OneDrive\Documents\GitHub\proyecto\World_Area.csv")
+area
+```
+
+## Clean Data 
+
+# Rename Columns  
+```{python}
+pop = pop.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "sp_pop_totl": "Total_Population"
+})
+pop
+```
+
+
+
+
+```{python}
+area = area.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "ag_lnd_totl_k2": "Area"
+})
+area
+```
+
+
+
+```{python}
+print(pop.columns)
+print(area.columns)
+```
+## Join 2  datasets 
+### As I have an error. I will clena it 
+
+```{python}
+pop.columns = pop.columns.str.strip()
+area.columns = area.columns.str.strip()
+```
+
+
+### now, I can do the merge....
+```{python}
+pop_area= pd.merge(pop, area, on=["Country","Year" ], how= "inner")
+```
+
+
+```{python}
+pop_area.head()
+```
+## Pirque Inner mantine las filas que coinciden en ambos 
+
+## calcular el campo de Popu density 
+```{python}
+pop_area["Population_Density"] = (
+    pop_area["Total_Population"] / pop_area["Area"]
+)
+pop_area
+```
+
+
+```{python}
+years = [1960, 1970, 1980, 1990, 2000, 2010, 2020]
+```
+
+
+```{python}
+pop_area_decades = pop_area[pop_area["Year"].isin(years)]
+```
+
+```{python}
+pop_area_decades = pop_area_decades.sort_values(["Country", "Year"])
+pop_area_decades
+```
+
+```{python}
+countries = ["usa", "che", "fra",
+    "chn", "ind",
+    "bra", "col",
+    "gha", "cod", "zaf",   
+    "sau","nga", "are"
+]
+```
+
+```{python}
+pop_area_subset = pop_area_decades[
+    pop_area_decades["Country"].isin(countries)
+]
+```
+
+```{python}
+pop_area_subset = pop_area_decades[
+    pop_area_decades["Country"].isin(countries)
+]
+```
+
+```{python}
+pop_area_subset
+```
+
+```{python}
+
+
+fig = px.line(
+    pop_area_subset,   # o pop_area_decades si quieres todos
+    x="Year",
+    y="Total_Population",
+    color="Country",
+    title="Population  by Country Over Time"
+)
+
+fig.show()
+```
+
+
+```{python}
+fig = px.line(
+    pop_area_subset,
+    x="Year",
+    y="Total_Population",
+    color="Country",
+    title="Population  by Country Over Time",
+    width=1200,
+    height=700
+)
+fig.show()
+```
+
+### no funciona
+
+```{python}
+latest_year = pop_area_subset["Year"].max()
+
+latest_data = pop_area_subset[pop_area_subset["Year"] == latest_year]
+
+fig = px.bar(
+    latest_data,
+    x="ind",
+    y="Total_Population",
+    title=f"Population Density by Country in {latest_year}",
+    width=1000,
+    height=600
+)
+fig.show()
+```
+
+
+```{python}
+pop_area_decades = 2020
+
+pop_area_decades = pop_area[
+    (pop_area["Year"] == latest_year) &
+    (pop_area["Country"].isin(countries))
+]
+```
+
+
+```{python}
+pop_area_decades = latest_data.sort_values("Total_Population", ascending=False)
+pop_area_decades
+```
+
+
+```{python}
+fig = px.bar(
+    latest_data,
+    x="Country",
+    y="Total_Population",
+    title=f"Total Population by Selected Countries ({latest_year})",
+    width=1000,
+    height=600
+)
+
+fig.show()
+```
+
+
+```{python}
+map_data = pop_area.copy()
+```
+
+```{python}
+
+
+
+
+```{python}
+fig = px.bar(
+    pop_area[
+        (pop_area["Year"].isin([2010, 2020])) &
+        (pop_area["Country"].isin(countries))
+    ],
+    x="Country",
+    y="Total_Population",   # 👈 mejor que Total_Population
+    color="Year",
+    barmode="group",          # 🔥 CLAVE → dos barras por país
+    title="Population Density: 2010 vs 2020",
+    width=1000,
+    height=600
+)
+
+fig.show()
+```
+
+### No funciona
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Population Density by Country",
+    color_continuous_scale="Blues",  # 🔥 aquí
+    width=1200,
+    height=700
+)
+
+fig.show()
+```
+
+
+
+
+## No funciona
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Population Density by Country",
+    color_continuous_scale="Blues",
+    width=1200,
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",     # bordes de países
+    showland=True,
+    landcolor="lightgray"     # países sin datos en gris
+)
+
+fig.show()
+```
+
+
+### No funciona
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Total_Population",
+    color_continuous_scale="RdPu",   # 🔥 rosado
+    width=1200,
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray"
+)
+
+fig.show()
+```
+
+## No funciona
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Population_Density",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Population Density by Country",
+    color_continuous_scale="RdPu",   # 🔥 rosado
+    width=1200,
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray"
+)
+
+fig.show()
+```
+
+
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Population_Density",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Population Density by Country",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,            # 👈 activar océano
+    oceancolor= "#dff3ff"
+)
+
+fig.update_layout(
+    coloraxis_colorbar=dict(
+        title="Population Density"
+    )
+)
+
+fig.show()
+```
+
+
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Total_Population",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,            # 👈 activar océano
+    oceancolor="#dff3ff"
+)
+
+fig.update_layout(
+    coloraxis_colorbar=dict(
+        title="Total_Population"
+    )
+)
+
+fig.show()
+```
+
+
+
+### Load Life Expentancy at Birth 
+`
+
+```{python}
+life_expectancy = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\ddf--datapoints--sp_dyn_le00_in--by--geo--time.csv")
+
+
+```
+
+```{python}
+life_expectancy.head()
+```
+
+# Rename Columns  
+```{python}
+life_expectancy= life_expectancy.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "sp_dyn_le00_in": "life_expectancy"
+})
+```
+
+
+```{python}
+life_expectancy
+```
+
+
+
+```{python}
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Total Population",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=700
+)
+```

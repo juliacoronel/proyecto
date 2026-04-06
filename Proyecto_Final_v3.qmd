@@ -1,0 +1,570 @@
+
+---
+title: "Final project_2026"
+format:
+  dashboard:
+    pages: true
+---
+
+
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import matplotlib.pyplot as plt
+import country_converter as coco
+```
+
+
+
+### Cargar los datasets
+
+```{python}
+pop = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\wWorld_pop_Total.csv")
+
+```
+
+
+
+```{python}
+area = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\World_Area.csv")
+```
+
+```{python}
+pop = pop.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "sp_pop_totl": "Total_Population"
+})
+
+```
+
+
+```{python}
+area = area.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "ag_lnd_totl_k2": "Area"
+})
+
+```
+
+
+## limpiar nombres de columnas 
+
+
+
+
+```{python}
+pop.columns = pop.columns.str.strip()
+area.columns = area.columns.str.strip()
+```
+
+
+
+## Hacer la union de los 2 CSv
+
+
+```{python}
+area = area.rename(columns={"Country": "ISO_3"})
+
+```
+
+```{python}
+pop = pop.rename(columns={"Country": "ISO_3"})
+
+```
+
+
+
+
+```{python}
+pop["ISO_3"] = pop["ISO_3"].str.upper()
+
+```
+
+
+```{python}
+area["ISO_3"] = area["ISO_3"].str.upper()
+
+```
+
+
+
+```{python}
+population = pd.merge(pop, area, on=["ISO_3","Year"], how="inner")
+```
+
+
+```{python}
+print(population.head())
+```
+
+```{python}
+population["Population_Density"] = (
+    population["Total_Population"] / population["Area"]
+).round(0).astype(int)
+
+```
+
+
+
+
+```{python}
+years = [1940,1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
+```
+
+
+```{python}
+countries = ["usa", "che", "fra",
+    "chn", "ind",
+    "bra", "col",
+    "gha", "cod", "zaf",   
+    "sau","nga", "are"
+]
+```
+
+
+
+```{python}
+population["Country"] = coco.convert(
+    names=population["ISO_3"],
+    to="name_short"
+)
+
+
+```
+
+
+
+```{python}
+population["Country"] = coco.convert(
+    names=population["ISO_3"],
+    to="name_short"
+)
+
+```
+## crear un datframe para las listas
+
+```{python}
+data = population[
+    (population["Year"].between(1960, 2020)) &
+    (population["ISO_3"].isin(countries))
+]
+
+```
+
+
+
+
+```{python}
+data = population[
+    (population["ISO_3"].str.lower().isin(countries)) &
+    (population["Year"].between(1960, 2020))
+]
+
+Line_Total_pop= px.line(
+    data,
+    x="Year",
+    y="Total_Population",
+    color="ISO_3",
+    title="Total Population by Country (1960–2020)",
+    width=1200,
+    height=700
+)
+
+
+    
+     
+  
+```
+
+
+
+
+```{python}
+Line_Density_pop = px.line(
+    data,
+    x="Year",
+    y="Population_Density",
+    color="ISO_3",
+    title="Density Population by Country (1960–2020)",
+    width=1200,
+    height=700
+)
+
+
+```
+
+
+
+
+
+```{python}
+data_bar = data[
+    data["Year"].isin([2010, 2020])
+]
+fig = px.bar(
+    data_bar,
+    x="Country",
+    y="Total_Population",
+    color="Year",
+    barmode="group",
+    title="Population Comparison: 2010 vs 2020",
+    color_discrete_map={
+        2010: "blue",
+        2020: "yellow"
+    }
+)
+
+
+
+```
+
+
+```{python}
+fig = px.bar(
+    data_bar,
+    x="Country",
+    y="Total_Population",
+    color="Year",
+    barmode="group",
+    title="Population Comparison: 2010 vs 2020",
+    color_discrete_map={
+        "2010": "blue",
+        "2020": "yellow"
+    }
+)
+
+
+```
+
+
+```{python}
+fig = px.bar(
+    data_bar,
+    x="Country",
+    y="Population_Density",
+    color="Year",
+    barmode="group",
+    title="Population_Density Comparison: 2010 vs 2020",
+    color_discrete_map={
+        "2010": "blue",
+        "2020": "yellow"
+    }
+)
+
+
+```
+
+#### Map
+
+
+```{python}
+map_data = population[
+    (population["ISO_3"].str.lower().isin(countries)) &
+    (population["Year"]== 2020)
+].copy()
+
+map_data["ISO3"] = map_data["ISO_3"]
+
+map_data["Country_Name"] = coco.convert(
+    names=map_data["ISO_3"],
+    to="name_short"
+)
+
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title="Total Population by Selected Countries",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+fig.update_layout(
+    coloraxis_colorbar=dict(
+        title="Total Population"
+    )
+)
+
+
+```
+
+
+```{python}
+map_data = population[
+    (population["ISO_3"].str.lower().isin(countries)) &
+    (population["Year"]==2020)
+].copy()
+
+map_data["ISO3"] = map_data["ISO_3"]
+
+map_data["Country_Name"] = coco.convert(
+    names=map_data["ISO_3"],
+    to="name_short"
+)
+
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Population_Density",
+    hover_name="Country_Name",
+    animation_frame="Year",
+    title=" Population_Density by Selected Countries",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+fig.update_layout(
+    coloraxis_colorbar=dict(
+        title="Population_Density"
+    )
+)
+
+
+```
+
+
+### Load Life Expentancy at Birth 
+
+
+```{python}
+
+life_expectancy = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\ddf--datapoints--sp_dyn_le00_in--by--geo--time.csv")
+```
+
+
+
+```{python}
+life_expectancy.head()
+```
+
+
+```{python}
+life_expectancy = life_expectancy.rename(columns={
+    "geo": "ISO_3",
+    "time": "Year",
+    "sp_dyn_le00_in": "Life_expectancy"
+})
+
+
+```
+
+
+
+```{python}
+life_expectancy["ISO_3"] = life_expectancy["ISO_3"].str.upper()
+```
+```{python}
+life_expectancy["Life_expentancy"] = (
+    life_expectancy["Life_expectancy"]
+    .round(0)
+    .astype(int)
+)
+life_expectancy
+```
+
+
+##3 Grafica de lineas para Life expectancy
+
+
+
+```{python}
+years = [1940,1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
+
+
+```
+
+
+```{python}
+countries = ["usa", "che", "fra",
+    "chn", "ind",
+    "bra", "col",
+    "gha", "cod", "zaf",   
+    "sau","nga", "are"
+]
+```
+
+
+
+
+
+```{python}
+Life = life_expectancy[
+    (life_expectancy["ISO_3"].str.lower().isin(countries)) &
+    (life_expectancy["Year"].between(1960, 2020))
+].copy()
+
+fig = px.line(
+    Life,
+    x="Year",
+    y="Life_expentancy",   # 👈 usa el nombre correcto
+    color="ISO_3",
+    title="Life Expectancy (1960–2020)",
+    width=1200,
+    height=700
+)
+
+
+```
+
+
+
+```{python}
+map_data = life_expectancy[
+    (life_expectancy["ISO_3"].str.lower().isin(countries)) &
+    (life_expectancy["Year"] == 2020)
+].copy()
+
+map_data["ISO3"] = map_data["ISO_3"].str.upper()
+
+map_data["Country_Name"] = coco.convert(
+    names=map_data["ISO_3"].str.upper(),
+    to="name_short"
+)
+
+fig = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Life_expectancy",
+    hover_name="Country_Name",
+    title="Life Expectancy by Selected Countries (2020)",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=700
+)
+
+fig.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+fig.update_layout(
+    coloraxis_colorbar=dict(
+        title="Life Expectancy"
+    )
+)
+
+
+```
+
+
+
+
+
+
+
+
+
+Union
+
+```{python}
+merged = pd.merge(
+    population,
+    life_expectancy,
+    on=["ISO_3", "Year"]
+)
+```
+
+
+```{python}
+merged.head(2)
+```
+
+```{python}
+
+countries_upper = [c.upper() for c in countries]
+
+data_2020 = merged[
+    (merged["Year"] == 2020) &
+    (merged["ISO_3"].isin(countries_upper))
+]
+
+fig = px.scatter(
+    data_2020,
+    x="Population_Density",
+    y="Life_expectancy",
+    color="Country",
+    size="Total_Population",
+    title="Relationship between Population Density and Life Expectancy (2020)"
+)
+
+fig.show()
+
+```
+
+
+
+
+
+
+
+```{python}
+countries_upper = [c.upper() for c in countries]
+
+data_line = merged[
+    (merged["ISO_3"].isin(countries_upper)) &
+    (merged["Year"].between(1960, 2020))
+]
+
+fig = px.line(
+    data_line,
+    x="Year",
+    y="Life_expectancy",
+    color="Country",
+    title="Life Expectancy Over Time by Country"
+)
+
+fig.show()
+```
+
+
+
+
+
+# Page 1
+
+## Row
+
+```{python}
+Line_Total_pop
+```
+## Row 2
+
+```{python}
+Line_Density_pop
+```

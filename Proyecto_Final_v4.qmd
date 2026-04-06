@@ -1,0 +1,875 @@
+
+---
+title: "Final project_2026"
+format:
+  dashboard:
+    pages: true
+    css: styles.css   # 👈 AÑADE ESTA LÍNEA
+---
+
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import matplotlib.pyplot as plt
+import country_converter as coco
+```
+
+
+
+
+
+
+## load Population
+
+```{python}
+pop = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\wWorld_pop_Total.csv")
+
+```
+
+## Load Area
+
+```{python}
+area = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\World_Area.csv")
+```
+
+
+## Rename Columns Population
+```{python}
+pop = pop.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "sp_pop_totl": "Total_Population"
+})
+
+```
+
+
+## Rename Columns for area 
+```{python}
+
+area = area.rename(columns={
+    "geo": "Country",
+    "time": "Year",
+    "ag_lnd_totl_k2": "Area"
+})
+
+```
+
+
+## Remove leading and trailing spaces from column names
+
+
+```{python}
+pop.columns = pop.columns.str.strip()
+area.columns = area.columns.str.strip()
+```
+
+
+## Rename Country to ISO3
+```{python}
+area = area.rename(columns={"Country": "ISO_3"})
+
+```
+
+```{python}
+pop = pop.rename(columns={"Country": "ISO_3"})
+
+```
+
+## Ensure ISO codes are in uppercase
+```{python}
+pop["ISO_3"] = pop["ISO_3"].str.upper()
+
+```
+
+
+```{python}
+area["ISO_3"] = pop["ISO_3"].str.upper()
+```
+
+
+## Merge population to area
+```{python}
+population = pd.merge(pop, area, on=["ISO_3","Year"], how="inner")
+```
+
+### Create and calculate population Density 
+
+```{python}
+population["Population_Density"] = (
+    population["Total_Population"] / population["Area"]
+).round(0).astype(int)
+
+```
+
+### Map Total population
+
+```{python}
+#| echo: false
+#| output: false
+import numpy as np
+
+# Data for all countries in 2020
+world_map_data = population[
+    population["Year"] == 2020
+].copy()
+
+# Convert ISO codes to country names
+world_map_data["Country_Name"] = coco.convert(
+    names=world_map_data["ISO_3"],
+    to="name_short"
+)
+
+# Ensure population density is numeric
+world_map_data["Population_Density"] = pd.to_numeric(
+    world_map_data["Population_Density"],
+    errors="coerce"
+)
+
+# Logarithmic transformation
+world_map_data["Density_log"] = np.log10(
+    world_map_data["Population_Density"] + 1
+)
+
+# -----------------------------
+# MAP 1: TOTAL POPULATION
+# -----------------------------
+world_total_population_map = px.choropleth(
+    world_map_data,
+    locations="ISO_3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    hover_data={
+        "ISO_3": False,
+        "Total_Population": True,
+        "Population_Density": True
+    },
+    title="Total Population by Country (2020)",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=800
+)
+
+world_total_population_map.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+
+world_total_population_map.update_layout(
+coloraxis_colorbar=dict(
+        title="Log Density"
+    ),
+    margin=dict(l=10, r=10, t=60, b=10)
+)
+# -----------------------------
+# MAP 2: POPULATION DENSITY
+# -----------------------------
+world_population_density_map = px.choropleth(
+    world_map_data,
+    locations="ISO_3",
+    color="Density_log",
+    hover_name="Country_Name",
+    hover_data={
+        "ISO_3": False,
+        "Population_Density": True,
+        "Density_log": False,
+        "Total_Population": True
+    },
+    title="Population Density by Country (2020)",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=800
+)
+
+world_population_density_map.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+world_population_density_map.update_layout(
+    coloraxis_colorbar=dict(
+        title="Log Density"
+    ),
+    margin=dict(l=10, r=10, t=60, b=10)
+)
+```
+
+
+#### Paises con mayor poblacion
+```{python}
+#| echo: false
+#| output: false
+
+# Flter data for 2020 (all countries )
+top_pop = population[
+    population["Year"] == 2020
+].copy()
+
+# Convert ISO codes to country names
+top_pop["Country"] = coco.convert(
+    names=top_pop["ISO_3"],
+    to="name_short"
+)
+# Select the 10 most populated countries
+top_pop = top_pop.nlargest(10, "Total_Population")
+
+# Sort values for better visualization
+top_pop = top_pop.sort_values("Total_Population", ascending=True)
+
+# Create horizontal bar chart
+Bar_Top_Pop = px.bar(
+    top_pop,
+    x="Total_Population",
+    y="Country",
+    orientation="h",
+    title="Top 10 Most Populated Countries in the World (2020)",
+    height=700,
+    text="Total_Population"
+)
+
+# Adjust layout
+Bar_Top_Pop.update_layout(
+      legend=dict(
+        x=1.02,
+        y=1,
+        xanchor="left",
+        yanchor="top"
+    )
+)
+```
+
+
+## List of selected years
+```{python}
+years = [1940,1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
+```
+
+## List of selected countries
+```{python}
+countries = ["usa", "che", "fra",
+    "chn", "ind",
+    "bra", "col",
+    "gha", "cod", "zaf",   
+    "sau","nga", "are"
+]
+```
+
+## Convert ISO-3 country codes to country names
+
+```{python}
+population["Country"] = coco.convert(
+    names=population["ISO_3"],
+    to="name_short"
+)
+
+
+```
+
+
+## Filter data for selected countries between 1960 and 2020
+
+```{python}
+data = population[
+    (population["Year"].between(1960, 2020)) &
+    (population["ISO_3"].isin(countries))
+]
+
+```
+
+
+```{python}
+#| echo: false
+#| output: false
+
+
+import plotly.express as px
+import pandas as pd
+
+data = population[
+    (population["ISO_3"].str.lower().isin(countries)) &
+    (population["Year"].between(1960, 2020))
+].copy()
+
+data["Year"] = pd.to_numeric(data["Year"], errors="coerce")
+data["Population_Density"] = pd.to_numeric(data["Population_Density"], errors="coerce")
+
+data = data.dropna(subset=["Year", "Population_Density", "Country"])
+data = data.sort_values(["Country", "Year"])
+
+Line_Density_pop = px.line(
+    data,
+    x="Year",
+    y="Population_Density",
+    color="Country",
+    title="Population Density by Country (1960–2020)",
+    markers=True,
+    log_y=True,
+    height=600
+)
+
+Line_Density_pop.update_layout(
+    autosize=True,
+    margin=dict(l=70, r=20, t=70, b=140),
+    legend=dict(
+        title_text="",
+        orientation="h",
+        yanchor="top",
+        y=-0.22,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=10),
+        entrywidth=110
+    )
+)
+
+Line_Density_pop
+
+
+```
+
+```{python}
+#| echo: false
+#| output: false
+
+Line_Total_pop = px.line(
+    data,
+    x="Year",
+    y="Total_Population",
+    color="Country",
+    title="Total Population by Country (1960–2020)",
+    markers=True,
+    log_y=True
+)
+
+Line_Total_pop.update_layout(
+    autosize=False,  # 👈 CLAVE
+    height=550,
+    margin=dict(l=60, r=20, t=60, b=140),
+
+    xaxis_title="Year",
+    yaxis_title="Total Population",
+
+    legend=dict(
+        title_text="",
+        orientation="h",
+        yanchor="top",
+        y=-0.25,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=7),
+        entrywidth=100,
+        itemsizing="constant"
+    )
+)
+
+Line_Total_pop
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{python}
+#| echo: false
+#| output: false
+Line_Density_pop = px.line(
+    data,
+    x="Year",
+    y="Population_Density",
+    color="Country",
+    title="Population Density by Country (1960–2020)",
+    log_y=True,
+    markers=True,
+    height=600
+)
+
+Line_Density_pop.update_layout(
+    autosize=True,
+    margin=dict(l=70, r=20, t=70, b=90),
+    legend=dict(
+        title="Country",
+        orientation="h",
+        yanchor="top",
+        y=-0.28,
+        xanchor="center",
+        x=0.5
+    )
+)
+  
+```
+
+
+#### Map
+
+
+```{python}
+#| echo: false
+#| output: false
+map_data = population[
+    (population["ISO_3"].str.lower().isin(countries)) &
+    (population["Year"] == 2020)
+].copy()
+
+map_data["ISO3"] = map_data["ISO_3"]
+
+map_data["Country_Name"] = coco.convert(
+    names=map_data["ISO_3"],
+    to="name_short"
+)
+
+Map_Total_pop = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Total_Population",
+    hover_name="Country_Name",
+    title="Total Population by Selected Countries (2020)",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=800
+)
+
+Map_Total_pop.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+Map_Total_pop.update_layout(
+    coloraxis_colorbar=dict(
+        title="Total Population"
+    )
+)
+
+```
+
+
+```{python}
+#| echo: false
+#| output: false
+Map_Density_pop = px.choropleth(
+    map_data,
+    locations="ISO3",
+    color="Population_Density",
+    hover_name="Country_Name",
+    title="Population Density by Selected Countries (2020)",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=800
+)
+
+Map_Density_pop.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+Map_Density_pop.update_layout(
+    coloraxis_colorbar=dict(
+        title="Population Density"
+    )
+)
+
+
+```
+
+
+
+```{python}
+
+life_expectancy = pd.read_csv(r"C:\Users\julia\OneDrive\Documents\GitHub\proyecto\ddf--datapoints--sp_dyn_le00_in--by--geo--time.csv")
+```
+
+
+
+
+```{python}
+life_expectancy = life_expectancy.rename(columns={
+    "geo": "ISO_3",
+    "time": "Year",
+    "sp_dyn_le00_in": "Life_expectancy"
+})
+
+
+```
+
+
+
+```{python}
+life_expectancy["ISO_3"] = life_expectancy["ISO_3"].str.upper()
+```
+```{python}
+life_expectancy["Life_expectancy"] = (
+    life_expectancy["Life_expectancy"]
+    .round(0)
+    .astype(int)
+)
+```
+
+
+### Grafica de lineas para Life expectancy
+
+
+
+```{python}
+years = [1940,1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
+
+
+```
+
+
+```{python}
+countries = ["usa", "che", "fra",
+    "chn", "ind",
+    "bra", "col",
+    "gha", "cod", "zaf",   
+    "sau","nga", "are"
+]
+```
+
+
+
+
+
+```{python}
+
+#| echo: false
+#| output: false
+
+Life = life_expectancy[
+    (life_expectancy["ISO_3"].str.lower().isin(countries)) &
+    (life_expectancy["Year"].between(1960, 2020))
+].copy()
+
+Life["Country"] = coco.convert(
+    names=Life["ISO_3"],
+    to="name_short"
+)
+
+Life_Line = px.line(
+    Life,
+    x="Year",
+    y="Life_expectancy",   # 👈 nombre corregido
+    color="Country",
+    title="Life Expectancy by Country (1960–2020)",
+    log_y=True,            # 👈 mismo estilo que density
+    markers=True,
+    height=600             # 👈 igual tamaño
+)
+
+Life_Line.update_layout(
+    autosize=True,
+    margin=dict(l=70, r=20, t=70, b=90),
+    legend=dict(
+        title="Country",
+        orientation="h",
+        yanchor="top",
+        y=-0.28,
+        xanchor="center",
+        x=0.5
+    )
+)
+```
+
+
+
+
+```{python}
+#| echo: false
+#| output: false
+
+life_map_data = life_expectancy[
+    (life_expectancy["ISO_3"].str.lower().isin(countries)) &
+    (life_expectancy["Year"] == 2020)
+].copy()
+
+life_map_data["ISO3"] = life_map_data["ISO_3"].str.upper()
+
+life_map_data["Country_Name"] = coco.convert(
+    names=life_map_data["ISO_3"].str.upper(),
+    to="name_short"
+)
+
+Map_Life_expectancy_2020 = px.choropleth(
+    life_map_data,
+    locations="ISO3",
+    color="Life_expectancy",
+    hover_name="Country_Name",
+    title="Life Expectancy by Selected Countries (2020)",
+    color_continuous_scale=px.colors.sequential.RdPu[1:6],
+    height=800
+)
+
+Map_Life_expectancy_2020.update_geos(
+    showframe=False,
+    showcoastlines=False,
+    showcountries=True,
+    countrycolor="white",
+    showland=True,
+    landcolor="lightgray",
+    projection_type="natural earth",
+    showocean=True,
+    oceancolor="#dff3ff"
+)
+
+Map_Life_expectancy_2020.update_layout(
+    coloraxis_colorbar=dict(
+        title="Life Expectancy"
+    )
+)
+```
+
+
+
+```{python}
+merged = pd.merge(
+    population,
+    life_expectancy,
+    on=["ISO_3", "Year"]
+)
+
+```
+
+```{python}
+
+countries_upper = [c.upper() for c in countries]
+
+data_2020 = merged[
+    (merged["Year"] == 2020) &
+    (merged["ISO_3"].isin(countries_upper))
+]
+```
+
+
+```{python}
+#| echo: false
+#| output: false
+
+import plotly.express as px
+
+Scatter_Density_Life = px.scatter(
+    data_2020,
+    x="Population_Density",
+    y="Life_expectancy",
+    color="Country",
+    size="Total_Population",
+    size_max=60,
+    title="Relationship between Population Density and Life Expectancy (2020)",
+    hover_name="Country",
+    hover_data={"Total_Population": ":,"}
+)
+
+Scatter_Density_Life.update_layout(
+    autosize=False,
+    width=1000,
+    height=650,
+    margin=dict(l=80, r=40, t=80, b=140),
+
+    # 👇 eliminar títulos automáticos
+    xaxis_title="",
+    yaxis_title="",
+
+    legend=dict(
+        title_text="",
+        orientation="h",
+        yanchor="top",
+        y=-0.18,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=10),
+        entrywidth=120
+    ),
+
+    # 👇 poner títulos manualmente donde quieres
+    annotations=[
+        dict(
+            text="Population Density",
+            x=0.5,
+            y=-0.12,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font=dict(size=14)
+        ),
+        dict(
+            text="Life Expectancy",
+            x=-0.08,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            textangle=-90,
+            font=dict(size=14)
+        )
+    ]
+)
+
+Scatter_Density_Life
+```
+
+
+
+
+
+
+
+
+
+
+
+### Heat Map Pop/ Life Expectancy
+```{python}
+#| echo: false
+#| output: false
+
+import plotly.express as px
+
+corr = merged[[
+    "Population_Density",
+    "Total_Population",
+    "Life_expectancy"
+]].corr()
+
+Heatmap_Correlation = px.imshow(
+    corr,
+    text_auto=".2f",
+    color_continuous_scale="RdBu_r",
+    zmin=-1,
+    zmax=1,
+    title="Correlation between Population Density, Total Population and Life Expectancy"
+)
+
+Heatmap_Correlation.update_layout(
+    autosize=True,
+    margin=dict(l=60, r=20, t=70, b=60)
+)
+```
+
+
+
+
+
+
+# Overview Population 
+
+## Row{height="40%"}
+
+### BarChart 10 populated places 
+
+```{python}
+Bar_Top_Pop
+```
+
+## Row{height="60%"}
+### Total Pop World
+```{python}
+world_total_population_map
+```
+### Density Pop World
+
+```{python}
+world_population_density_map
+```
+
+# Population overview Selected counties
+## Row
+
+### Line Chart Total Pop 12 countries
+```{python}
+Line_Total_pop
+```
+### Line Chart Density  Pop 12 countries
+```{python}
+Line_Density_pop
+```
+
+
+## Row
+
+### Total Population Map
+```{python}
+Map_Total_pop
+```
+
+### Population Density Map
+```{python}
+Map_Density_pop
+```
+
+
+# Life expectancy
+
+## Row {height="50%"}
+
+### Life Expectancy
+
+```{python}
+Life_Line
+```
+## Row {height="50%"}
+### Map Life expectancy
+```{python}
+Map_Life_expectancy_2020
+```
+
+# Relationship Population / Life expectancy  
+
+## Row {height="50%"}
+
+### Life Expectancy Vs Density Population Scatter 
+
+```{python}
+Scatter_Density_Life
+
+```
+
+## Row {height="50%"}
+###  HeatmAP  relatioship Life expectancy / Population
+
+```{python}
+Heatmap_Correlation
+```
+
+
+

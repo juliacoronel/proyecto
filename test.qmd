@@ -1,0 +1,75 @@
+
+
+# Page 1
+
+## Row
+
+### Total Population Line
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import country_converter as coco
+
+pop = pd.read_csv("wWorld_pop_Total.csv")
+area = pd.read_csv("World_Area.csv")
+
+pop = pop.rename(columns={
+    "geo": "ISO_3",
+    "time": "Year",
+    "sp_pop_totl": "Total_Population"
+})
+
+area = area.rename(columns={
+    "geo": "ISO_3",
+    "time": "Year",
+    "ag_lnd_totl_k2": "Area"
+})
+
+pop.columns = pop.columns.str.strip()
+area.columns = area.columns.str.strip()
+
+pop["ISO_3"] = pop["ISO_3"].str.upper()
+area["ISO_3"] = area["ISO_3"].str.upper()
+
+population = pd.merge(pop, area, on=["ISO_3", "Year"], how="inner")
+population = population.dropna(subset=["Total_Population", "Area"])
+
+population["Population_Density"] = (
+    population["Total_Population"] / population["Area"]
+).round(0)
+
+population["Country"] = coco.convert(
+    names=population["ISO_3"],
+    to="name_short"
+)
+
+countries = ["USA", "CHE", "FRA", "CHN", "IND", "BRA", "COL",
+             "GHA", "COD", "ZAF", "SAU", "NGA", "ARE"]
+
+data = population[
+    (population["ISO_3"].isin(countries)) &
+    (population["Year"].between(1960, 2020))
+].copy()
+
+Line_Total_pop = px.line(
+    data,
+    x="Year",
+    y="Total_Population",
+    color="Country",
+    title="Total Population by Country (1960–2020)",
+    log_y=True,
+    markers=True,
+    height=500
+)
+
+Line_Total_pop.update_layout(
+    legend=dict(
+        orientation="h",
+        y=-0.25,
+        x=0.5,
+        xanchor="center"
+    )
+)
+
+Line_Total_pop
